@@ -11,6 +11,8 @@ from selenium.webdriver.common.by import By
 
 from bs4 import BeautifulSoup
 
+from settings import filter_product, control_discount
+
 
 class Parse:
     def __init__(self, url):
@@ -53,8 +55,12 @@ class Parse:
             sale = math.ceil((bonus * 100) / price)
             # if sale >= 44 and any(brand in name for brand in self.brands):
             # print(sale)
-            if sale >= 32 and (any(brand in name for brand in self.brands_pl) or any(brand in name for brand in self.brands_kof)):
-                self.price_dict[f'{name}'] = [url, sale]
+            if sale >= control_discount:
+                if self.url in ['planshety', 'kofemashiny']:
+                    if filter_product(name):
+                        self.price_dict[f'{name}'] = [url, sale]
+                else:
+                    self.price_dict[f'{name}'] = [url, sale]
 
         return self.price_dict
 
@@ -88,7 +94,7 @@ class Parse_Price:
             row += 1
             if sheet.cell(row=row, column=1).value is None:
                 break
-            self.products[sheet.cell(row=row, column=1).value] = sheet.cell(row=row, column=2).value
+            self.products[sheet.cell(row=row, column=1).value] = [sheet.cell(row=row, column=2).value, sheet.cell(row=row, column=3).value]
         print(self.products)
 
     def save(self):
@@ -97,7 +103,7 @@ class Parse_Price:
         sheet = wb[f'{self.sheet_name}_1']
         for name, url_name in self.products.items():
             column += 1
-            sheet[f'A{column}'], sheet[f'B{column}'] = name, url_name
+            sheet[f'A{column}'], sheet[f'B{column}'], sheet[f'C{column}'] = name, url_name[0], url_name[1]
         wb.save('price.xlsx')
 
     def create_table(self):
@@ -116,7 +122,7 @@ class Parse_Price:
         self.open()
         for name, url in self.products.copy().items():
             self._set_up()
-            self._get_url(url)
+            self._get_url(url[0])
             page = self.driver.page_source
             soup = BeautifulSoup(page, 'lxml')
             text = soup.find_all('div', {'class': 'product-offer product-offer_with-payment-method'})
@@ -145,8 +151,6 @@ class Parse_Price:
 
 
 if __name__ =='__main__':
-    # url = 'https://megamarket.ru/catalog/planshety/#?filters=%7B%222B0B1FF4756D49CF84B094522D57ED3D%22%3A%5B%22Apple%22%2C%22Honor%22%2C%22Huawei%22%2C%22Lenovo%22%2C%22Realme%22%2C%22Redmi%22%2C%22Samsung%22%2C%22Xiaomi%22%5D%7D'
-    # url = 'https://megamarket.ru/catalog/planshety/'
     # Parse(url).parse()
     # Parse_Price('planshety').run()
     Parse_Price('kofemashiny').run()

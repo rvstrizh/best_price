@@ -30,8 +30,8 @@ class Main:
         dict_ = Parse(url).parse()
         self.dict_page |= dict_
         count = 0
-        while True:
-        # for i in range(2):
+        # while True:
+        for i in range(2):
             count += 1
             try:
                 dict_ = Parse(f'{url}page-{count}').parse()
@@ -48,6 +48,7 @@ class Main:
 
 if __name__ =='__main__':
     # url = 'kofemashiny'
-    url = 'planshety'
-    Main(url).start()
-    # Parse_Price(url).run()
+    # url = 'planshety'
+    url = 'blendery'
+    # Main(url).start()
+    Parse_Price(url).run()
