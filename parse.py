@@ -15,8 +15,9 @@ from settings import filter_product, control_discount
 
 
 class Parse:
-    def __init__(self, url):
+    def __init__(self, url, category):
         self.price_dict = {}
+        self.category = category
         self.url = url
         self.brands_pl = ['Apple', 'Huawei', 'Realme', 'Samsung', 'Xiaomi', 'Honor']
         self.brands_kof = ['DeLonghi', 'Philips', 'Smeg', 'Polaris', 'Nivona', 'Jura', 'Bosh']
@@ -30,7 +31,8 @@ class Parse:
         self.driver = webdriver.Chrome(options=options)
 
     def _get_url(self):
-        # print(self.url)
+        print(self.url)
+        self.driver.set_page_load_timeout(600)
         self.driver.get(self.url)
         self.driver.implicitly_wait(10)
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
@@ -49,19 +51,23 @@ class Parse:
             p = i.find('div', {'class': 'item-money'})
             price = int(re.sub(r"[\s,₽]", "", p.find('span').get_text()))
             try:
+                shop = i.find('span', {'class': 'merchant-info__name'}).get_text().strip()
+            except AttributeError:
+                shop = '0'
+            try:
                 bonus = int(re.sub(r"[\s,₽]", "", p.find('span', {'class': 'bonus-amount'}).get_text()))
             except AttributeError:
                 bonus = 0
             sale = math.ceil((bonus * 100) / price)
             # if sale >= 44 and any(brand in name for brand in self.brands):
-            # print(sale)
-            if sale >= control_discount:
-                if self.url in ['planshety', 'kofemashiny']:
-                    if filter_product(name):
-                        self.price_dict[f'{name}'] = [url, sale]
+            if sale >= control_discount and price > 3000:
+                if self.category in ['planshety', 'kofemashiny', 'umnye-chasy', 'smartfony-android']:
+                    if filter_product(name, self.category):
+                        print('ok')
+                        self.price_dict[f'{name}'] = [url, sale, price, shop]
                 else:
-                    self.price_dict[f'{name}'] = [url, sale]
-
+                    self.price_dict[f'{name}'] = [url, sale, price, shop]
+                    print('ok')
         return self.price_dict
 
 
@@ -84,6 +90,7 @@ class Parse_Price:
     def _get_url(self, url):
         self.driver.get(f'{url}#?details_block=prices')
         self.driver.implicitly_wait(10)
+        self.driver.set_page_load_timeout(600)
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
     def open(self):
@@ -95,11 +102,9 @@ class Parse_Price:
             if sheet.cell(row=row, column=1).value is None:
                 break
             self.products[sheet.cell(row=row, column=1).value] = [sheet.cell(row=row, column=2).value, sheet.cell(row=row, column=3).value]
-        print(self.products)
 
     def save(self):
         column = self.counter
-        self.create_table()
         sheet = wb[f'{self.sheet_name}_1']
         for name, url_name in self.products.items():
             column += 1
@@ -108,15 +113,10 @@ class Parse_Price:
 
     def create_table(self):
         print('create')
-        if f'{self.sheet_name}_1' not in wb.sheetnames:
-            wb.create_sheet(f'{self.sheet_name}_1')
-            wb.save('./price.xlsx')
-        # elif self.counter == 0:
-        #     print(wb.sheetnames)
-        #     wb.remove(f'{self.sheet_name}_1')
-        #     print(wb.sheetnames)
-        #     wb.create_sheet(f'{self.sheet_name}_1')
-        #     wb.save('./price.xlsx')
+        if f'{self.sheet_name}_1' in wb.sheetnames:
+            wb.remove(wb[f'{self.sheet_name}_1'])
+        wb.create_sheet(f'{self.sheet_name}_1')
+        wb.save('./price.xlsx')
 
     def calculation(self):
         self.open()
@@ -145,12 +145,16 @@ class Parse_Price:
         self.save()
 
     def run(self):
+        self.create_table()
         for i in range(0, 210, 30):
             self.counter = i
             self.calculation()
 
 
 if __name__ =='__main__':
-    # Parse(url).parse()
-    # Parse_Price('planshety').run()
-    Parse_Price('kofemashiny').run()
+    # urls = ['naushniki']
+    # urls = ['umnye-chasy']
+    # urls = ['chajniki-elektricheskie', 'kofemashiny', 'blendery']
+    urls = ['planshety', 'kuhonnye-kombajny-i-mashiny', 'multirezki']
+    for url in urls:
+        Parse_Price(url).run()
