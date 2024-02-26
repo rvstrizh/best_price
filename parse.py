@@ -11,24 +11,17 @@ from selenium.webdriver.common.by import By
 
 from bs4 import BeautifulSoup
 
-from settings import filter_product, control_discount
+from settings import filter_product, control_discount, filter_phone
 
 
 class Parse:
-    def __init__(self, url, category):
+    def __init__(self, url, category, driver):
         self.price_dict = {}
         self.category = category
         self.url = url
         self.brands_pl = ['Apple', 'Huawei', 'Realme', 'Samsung', 'Xiaomi', 'Honor']
         self.brands_kof = ['DeLonghi', 'Philips', 'Smeg', 'Polaris', 'Nivona', 'Jura', 'Bosh']
-
-    def _set_up(self):  # запускаем браузер
-        options = Options()
-        user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-        options.add_argument(f'user-agent={user_agent}')
-        options.add_argument('--headless')
-        options.add_argument('--start-maximized')
-        self.driver = webdriver.Chrome(options=options)
+        self.driver = driver
 
     def _get_url(self):
         print(self.url)
@@ -38,12 +31,10 @@ class Parse:
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
     def parse(self):
-        self._set_up()
         self._get_url()
         page = self.driver.page_source
         soup = BeautifulSoup(page, 'lxml')
         pr = soup.find_all('div', {'class': 'item-block'})
-        # print(pr)
         for i in pr:
             product = i.find('div', {'class': 'item-title'}).a
             url = f"https://megamarket.ru{product['href']}"
@@ -62,8 +53,14 @@ class Parse:
             # if sale >= 44 and any(brand in name for brand in self.brands):
             if sale >= control_discount and price > 3000:
                 if self.category in ['planshety', 'kofemashiny', 'umnye-chasy', 'smartfony-android']:
-                    if filter_product(name, self.category):
-                        print('ok')
+                    if self.category == 'smartfony-android':
+                        brand = filter_phone(name)
+                        if brand:
+                            if brand in self.price_dict:
+                                self.price_dict[f'{brand}'] |= {name: [url, sale, price, shop]}
+                            else:
+                                self.price_dict[f'{brand}'] = {name: [url, sale, price, shop]}
+                    elif filter_product(name, self.category):
                         self.price_dict[f'{name}'] = [url, sale, price, shop]
                 else:
                     self.price_dict[f'{name}'] = [url, sale, price, shop]
@@ -152,9 +149,6 @@ class Parse_Price:
 
 
 if __name__ =='__main__':
-    # urls = ['naushniki']
-    # urls = ['umnye-chasy']
-    # urls = ['chajniki-elektricheskie', 'kofemashiny', 'blendery']
-    urls = ['planshety', 'kuhonnye-kombajny-i-mashiny', 'multirezki']
+    urls = ['smartfony-android']
     for url in urls:
-        Parse_Price(url).run()
+        print(Parse(f'https://megamarket.ru/catalog/{url}/', url).parse())
