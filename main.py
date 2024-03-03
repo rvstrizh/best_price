@@ -12,13 +12,7 @@ class Main:
         global wb
         wb = load_workbook('price.xlsx')
 
-    def _set_up(self):  # запускаем браузер
-        options = Options()
-        user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-        options.add_argument(f'user-agent={user_agent}')
-        options.add_argument('--headless')
-        options.add_argument('--start-maximized')
-        self.driver = webdriver.Chrome(options=options)
+
 
     def open(self, brand):
         if brand in wb.sheetnames:
@@ -53,16 +47,15 @@ class Main:
             wb.save('price.xlsx')
 
     def paginator_page(self):
-        self._set_up()
         url = f'https://megamarket.ru/catalog/{self.url}/'
-        dict_ = Parse(url, self.url, self.driver).parse()
+        dict_ = Parse(url, self.url).parse()
         self.dict_page |= dict_
         count = 1
         while True:
         # for i in range(2):
             count += 1
             try:
-                dict_ = Parse(f'{url}page-{count}', self.url, self.driver).parse()
+                dict_ = Parse(f'{url}page-{count}', self.url).parse()
                 if self.url == 'smartfony-android':
                     for brand in dict_:
                         if brand in self.dict_page:
@@ -74,10 +67,8 @@ class Main:
                     self.dict_page |= dict_
                 print('test=', count)
                 if count >= 50:
-                    self.driver.quit()
                     break
             except TypeError:
-                self.driver.quit()
                 break
 
     def start(self):
@@ -88,11 +79,12 @@ class Main:
 
 
 if __name__ =='__main__':
-    # urls = ['naushniki', 'umnye-chasy', 'portativnye-kolonki', 'televizory', 'smartfony-android', 'smartfony-android']
+    urls = ['naushniki', 'umnye-chasy', 'portativnye-kolonki', 'televizory', 'smartfony-android', 'smartfony-android']
     # urls = ['kofemashiny', 'planshety', 'blendery', 'chajniki-elektricheskie', 'multirezki', 'kuhonnye-kombajny-i-mashiny', 'konstruktory-lego', 'igrovye-pristavki-playstation', 'igrovye-pristavki-xbox', 'portativnye-igrovye-konsoli', 'geympady', 'elektricheskie-zubnye-shetki', 'irrigatory']
-    urls = ['naushniki', 'smartfony-android']
+    # urls = ['naushniki', 'smartfony-android']
     for url in urls:
         try:
+            
             Main(url).start()
         except TimeoutException:
             Main(url).start()

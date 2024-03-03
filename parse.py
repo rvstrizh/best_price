@@ -15,13 +15,20 @@ from settings import filter_product, control_discount, filter_phone
 
 
 class Parse:
-    def __init__(self, url, category, driver):
+    def __init__(self, url, category):
         self.price_dict = {}
         self.category = category
         self.url = url
         self.brands_pl = ['Apple', 'Huawei', 'Realme', 'Samsung', 'Xiaomi', 'Honor']
         self.brands_kof = ['DeLonghi', 'Philips', 'Smeg', 'Polaris', 'Nivona', 'Jura', 'Bosh']
-        self.driver = driver
+
+    def _set_up(self):  # запускаем браузер
+        options = Options()
+        user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        options.add_argument(f'user-agent={user_agent}')
+        options.add_argument('--headless')
+        options.add_argument('--start-maximized')
+        self.driver = webdriver.Chrome(options=options)
 
     def _get_url(self):
         print(self.url)
@@ -31,6 +38,7 @@ class Parse:
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
     def parse(self):
+        self._set_up()
         self._get_url()
         page = self.driver.page_source
         soup = BeautifulSoup(page, 'lxml')
